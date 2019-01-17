@@ -22,20 +22,22 @@ class MISEnv(gym.Env):
 
     def reset(self):
         self.A = SAMPLE_GRAPH
+        self.to_vertex = np.arange(self.A.shape[0])
         self.ans = []
         self.reward = 0  # number of vertices already counted in the solution
         return self.A
 
     def step(self, action):  # action: index of a vertex
-        self.ans.append(action)
+        self.ans.append(self.to_vertex[action])
         # delete neighbors
         remain = self.A[action] == 0
         # delete itself
         remain[action] = False
+        self.to_vertex = self.to_vertex[remain]
         self.A = self.A[remain][:, remain]
         self.reward += 1
         assert self.A.shape[0] == 0 or self.A.shape[0] == self.A.shape[1]
-        return self.A, self.reward, self.A.shape[0] == 0, {}
+        return self.A, self.reward, self.A.shape[0] == 0, self.ans
 
     def render(self, mode='human', close=False):
         print(self.A)
