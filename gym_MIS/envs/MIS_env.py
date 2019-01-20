@@ -1,9 +1,10 @@
 import gym
 import numpy as np
+import scipy.sparse as sp
 
 # sample graph
 # optimal solution is {0, 2, 3}
-SAMPLE_GRAPH = np.array([
+SAMPLE_GRAPH = sp.coo_matrix([
     [0, 1, 0, 0],
     [1, 0, 1, 0],
     [0, 1, 0, 0],
@@ -32,19 +33,21 @@ class MISEnv(gym.Env):
 
     def reset(self):
         self.A = self.graph
-        self.to_vertex = np.arange(self.A.shape[0])
+        self.to_vertex = np.arange(self.A.shape[0], dtype=np.int)
         self.ans = []
         self.reward = 0  # number of vertices already counted in the solution
         return self.A
 
     def step(self, action):  # action: index of a vertex
         self.ans.append(self.to_vertex[action])
+        csr = self.A.tocsr()
         # delete neighbors
-        remain = self.A[action] == 0
+        mask = csr.getrow(action).toarray()[0] == 0
         # delete itself
-        remain[action] = False
-        self.to_vertex = self.to_vertex[remain]
-        self.A = self.A[remain][:, remain]
+        mask[action] = False
+        self.to_vertex = self.to_vertex[mask]
+        csr = csr[mask][:, mask]
+        self.A = csr.tocoo()
         self.reward += 1
         assert self.A.shape[0] == 0 or self.A.shape[0] == self.A.shape[1]
         return self.A, self.reward, self.A.shape[0] == 0, {'ans': self.ans}
