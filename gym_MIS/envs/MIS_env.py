@@ -2,14 +2,12 @@ import gym
 import numpy as np
 import scipy.sparse as sp
 
-# sample graph
-# optimal solution is {0, 2, 3}
-SAMPLE_GRAPH = sp.coo_matrix([
+SAMPLE_GRAPH = np.array([
     [0, 1, 0, 0],
     [1, 0, 1, 0],
     [0, 1, 0, 0],
     [0, 0, 0, 0],
-], dtype=np.bool)
+], dtype=np.float32)
 
 """
 graph: original graph
@@ -40,14 +38,12 @@ class MISEnv(gym.Env):
 
     def step(self, action):  # action: index of a vertex
         self.ans.append(self.to_vertex[action])
-        csr = self.A.tocsr()
         # delete neighbors
-        mask = csr.getrow(action).toarray()[0] == 0
+        mask = self.A[action] == 0
         # delete itself
         mask[action] = False
         self.to_vertex = self.to_vertex[mask]
-        csr = csr[mask][:, mask]
-        self.A = csr.tocoo()
+        self.A = self.A[mask][:, mask]
         self.reward += 1
         assert self.A.shape[0] == 0 or self.A.shape[0] == self.A.shape[1]
         return self.A, self.reward, self.A.shape[0] == 0, {'ans': self.ans}
